@@ -1,10 +1,11 @@
 const router = require("express").Router();
-const { usernameVarmi, rolAdiGecerlimi } = require('./auth-middleware');
+const { usernameVarmi, rolAdiGecerlimi,checkPayload } = require('./auth-middleware');
 const { JWT_SECRET } = require("../secrets"); // bu secret'ı kullanın!
-const bcrypt = require("bcryptjs");
-const UserModel = require("../users/users-model")
+const jwt = require("jsonwebtoken");
+const bcryptjs = require("bcryptjs");
+const userModel = require("../users/users-model");
 
-router.post("/register", rolAdiGecerlimi, async (req, res, next) => {
+router.post("/register",checkPayload, rolAdiGecerlimi, async(req, res, next) => {
   /**
     [POST] /api/auth/register { "username": "anna", "password": "1234", "role_name": "angel" }
 
@@ -17,13 +18,9 @@ router.post("/register", rolAdiGecerlimi, async (req, res, next) => {
     }
    */
   try {
-    let hashedPassword = bcrypt.hashSync(req.body.password);
-    let userRequestModel = {
-      username: req.body.username,
-      password: hashedPassword,
-      role_name: req.body.role_name
-    };
-    const registeredUser = await UserModel.ekle(userRequestModel);
+    let hashedPassword=bcryptjs.hashSync(req.body.password);
+    let userRequestModel = {username:req.body.username,password:hashedPassword,role_name:req.body.role_name};
+    const registeredUser = await userModel.ekle(userRequestModel);
     res.status(201).json(registeredUser);
   } catch (error) {
     next(error);
@@ -31,7 +28,7 @@ router.post("/register", rolAdiGecerlimi, async (req, res, next) => {
 });
 
 
-router.post("/login", usernameVarmi, (req, res, next) => {
+router.post("/login",checkPayload, usernameVarmi, (req, res, next) => {
   /**
     [POST] /api/auth/login { "username": "sue", "password": "1234" }
 
@@ -50,6 +47,20 @@ router.post("/login", usernameVarmi, (req, res, next) => {
       "role_name": "admin" // giriş yapan kulanıcının role adı
     }
    */
+  try {
+    let payload = {
+      subject:req.currentUser.user_id,
+      username:req.currentUser.username,
+      role_name:req.currentUser.role_name
+    }
+    const token = jwt.sign(payload,JWT_SECRET,{expiresIn:"1d"});
+    res.json({
+      message:`${req.currentUser.username} geri geldi!`,
+      token: token
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 module.exports = router;

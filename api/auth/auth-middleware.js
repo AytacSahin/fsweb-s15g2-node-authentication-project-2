@@ -1,4 +1,5 @@
 const { JWT_SECRET } = require("../secrets"); // bu secreti kullanın!
+const jwt = require("jsonwebtoken");
 
 const sinirli = (req, res, next) => {
   /*
@@ -16,13 +17,30 @@ const sinirli = (req, res, next) => {
 
     Alt akıştaki middlewarelar için hayatı kolaylaştırmak için kodu çözülmüş tokeni req nesnesine koyun!
   */
+  try {
+    let authHeader = req.headers.authorizaiton;
+    if (authHeader) {
+      res.status(401).json({ message: "Token gereklidir" });
+    } else {
+      jwt.verify(authHeader, JWT_SECRET, (error, decodedToken) => {
+        if (error) {
+          res.status(401).json({ message: "Token gecersizdir" });
+        } else {
+          req.decodedToken = decodedToken;
+          next();
+        }
+      })
+    }
+  } catch (error) {
+    next(error);
+  }
 }
 
 const sadece = role_name => (req, res, next) => {
   /*
     
-	Kullanıcı, Authorization headerında, kendi payloadu içinde bu fonksiyona bağımsız değişken olarak iletilen 
-	rol_adı ile eşleşen bir role_name ile bir token sağlamazsa:
+  Kullanıcı, Authorization headerında, kendi payloadu içinde bu fonksiyona bağımsız değişken olarak iletilen 
+  rol_adı ile eşleşen bir role_name ile bir token sağlamazsa:
     status: 403
     {
       "message": "Bu, senin için değil"

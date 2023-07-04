@@ -48,6 +48,15 @@ const sadece = role_name => (req, res, next) => {
 
     Tekrar authorize etmekten kaçınmak için kodu çözülmüş tokeni req nesnesinden çekin!
   */
+  try {
+    if (req.decodedToken.role_name === role_name) {
+      next()
+    } else {
+      res.status(403).json({ message: "Bu, senin için değil" });
+    }
+  } catch (error) {
+
+  }
 }
 
 

@@ -1,8 +1,10 @@
 const router = require("express").Router();
 const { usernameVarmi, rolAdiGecerlimi } = require('./auth-middleware');
 const { JWT_SECRET } = require("../secrets"); // bu secret'ı kullanın!
+const bcrypt = require("bcryptjs");
+const UserModel = require("../users/users-model")
 
-router.post("/register", rolAdiGecerlimi, (req, res, next) => {
+router.post("/register", rolAdiGecerlimi, async (req, res, next) => {
   /**
     [POST] /api/auth/register { "username": "anna", "password": "1234", "role_name": "angel" }
 
@@ -14,6 +16,18 @@ router.post("/register", rolAdiGecerlimi, (req, res, next) => {
       "role_name": "angel"
     }
    */
+  try {
+    let hashedPassword = bcrypt.hashSync(req.body.password);
+    let userRequestModel = {
+      username: req.body.username,
+      password: hashedPassword,
+      role_name: req.body.role_name
+    };
+    const registeredUser = await UserModel.ekle(userRequestModel);
+    res.status(201).json(registeredUser);
+  } catch (error) {
+    next(error);
+  }
 });
 
 

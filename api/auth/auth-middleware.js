@@ -1,5 +1,7 @@
 const { JWT_SECRET } = require("../secrets"); // bu secreti kullanın!
 const jwt = require("jsonwebtoken");
+const { goreBul } = require("../users/users-model");
+const bcrypt = require("bcryptjs");
 
 const sinirli = (req, res, next) => {
   /*
@@ -60,7 +62,7 @@ const sadece = role_name => (req, res, next) => {
 }
 
 
-const usernameVarmi = (req, res, next) => {
+const usernameVarmi = async (req, res, next) => {
   /*
     req.body de verilen username veritabanında yoksa
     status: 401
@@ -68,6 +70,21 @@ const usernameVarmi = (req, res, next) => {
       "message": "Geçersiz kriter"
     }
   */
+  try {
+    let existUser = await goreBul(req.body.username);
+    if (existUser) {
+      let currentUser = existUser[0];
+      let isPasswordMatch = bcrypt.compareSync(req.body.password, currentUser.password);
+      if (!isPasswordMatch) {
+        res.status(401).json({ message: "Geçersiz kriter" });
+      } else {
+        req.currentUser = currentUser;
+        next()
+      }
+    }
+  } catch (error) {
+    next(error)
+  }
 }
 
 
